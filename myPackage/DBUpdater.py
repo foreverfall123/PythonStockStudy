@@ -81,6 +81,34 @@ class DBUpdater:
     def read_naver(self, code, company, pages_to_fetch):
         """네이버 금융에서 주식 시세를 읽어서 데이터 프레임으로 변환"""
 
+        try:
+            url = f"http://finance.naver.com/item/sise_day.nhn?code={code}"
+            html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, 'lxml')
+            pgrr = html.find("td", class_="pgRR")
+            if pgrr is None:
+                return None
+            s = str(pgrr.a["href"].split('='))
+            lastpage = s[-1]
+
+            df = pd.DataFrame()
+            pages = min(int(lastpage), pages_to_fetch)
+
+            for page in range(1,pages + 1):
+                pg_url = '{}&page={}'.format(url,page)
+                df = df.append(pd.read_html(requests.get(pg_url, headers={'User-agent': 'Mozilla/5.0'}).text)[0])
+                tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
+                print('[{}] {} ({}) : {:04d}/{:04d} pages are downloading...'.format(tmnow, company, code, page, pages), end="\r")
+
+            df = df.rename(columns={'날짜':'date', '종가':'close', '전일비':'diff', '시가':'open', '고가':'high', '저가','low', '거래량':'volume'})
+            df['date'] = df['date'].replace('.','-')
+            df = df.dropna()
+            df[['close','diff','open','high','low','volume']] = df[['close','diff','open','high','low','volume']].astype(int)
+            df = df[['date','open','high','low','close','diff','volume']]
+        except Exception as e:
+            print('Exception occured :',str(e))
+            return None
+        return df
+
     def replace_info_db(self, df, num, code, company):
         """네이버 금융에서 읽어온 주식 시세를 DB에 REPLACE"""
 
