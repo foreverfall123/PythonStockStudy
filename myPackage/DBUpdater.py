@@ -133,6 +133,34 @@ class DBUpdater:
     def execute_daily(self):
         """실행 즉시 및 메일 오후 다섯시에 daily_price 테이블 업데이트"""
 
+        self.update_comp_info()
+        try:
+            with open('config.json','r') as in_file:
+                config = json.load(in_file)
+                pages_to_fetch = config['pages_to_fetch']
+        except FileNotFoundError:
+            with open('config.json', 'w') as out_file:
+                pages_to_fetch = 100
+                config = {'pages_to_fetch':1}
+                json.dump(config, out_file)
+        self.update_daily_price(pages_to_fetch)
+
+        tmnow = datetime.now()
+        lastday = calendar.monthrange(tmnow.year, tmnow.month)[1]
+        if tmnow.month == 12 and tmnow.day == lastday:
+            tmnext = tmnow.replace(year=tmnow.year+1, month = 1, day = 1, hour = 17, minute = 0, second = 0)
+        elif tmnow.day == lastday:
+            tmnext = tmnow.replace(month = tmnow.month+1, day = 1, hour = 17, minute = 0, second = 0)
+        else:
+            tmnext = tmnow.replace(day = tmnow.day + 1, hour = 17, minute = 0, second = 0)
+
+        tmdiff = tmnext - tmnow
+        secs = tmdiff.seconds
+
+        t = Timer(secs, self.execute_daily)
+        print("Waiting for next update ({}) ... ".format(tmnext.strftime('%Y-%m-%d %H:%M')))
+        t.start()
+
 if __name__ == '__main__':
     dbu = DBUpdater()
     dbu.execute_daily()
