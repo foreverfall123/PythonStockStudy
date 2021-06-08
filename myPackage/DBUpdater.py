@@ -1,6 +1,10 @@
-import pymysql
 import pandas as pd
+from bs4 import BeautifulSoup
+import urllib, pymysql, calendar, time, json
+import requests
 from datetime import datetime
+from threading import Timer
+import pymysql
 
 class DBUpdater:
     def __init__(self):
@@ -87,10 +91,11 @@ class DBUpdater:
             pgrr = html.find("td", class_="pgRR")
             if pgrr is None:
                 return None
-            s = str(pgrr.a["href"].split('='))
+            s = str(pgrr.a["href"]).split('=')
             lastpage = s[-1]
 
             df = pd.DataFrame()
+            print(lastpage)
             pages = min(int(lastpage), pages_to_fetch)
 
             for page in range(1,pages + 1):
@@ -99,7 +104,7 @@ class DBUpdater:
                 tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
                 print('[{}] {} ({}) : {:04d}/{:04d} pages are downloading...'.format(tmnow, company, code, page, pages), end="\r")
 
-            df = df.rename(columns={'날짜':'date', '종가':'close', '전일비':'diff', '시가':'open', '고가':'high', '저가','low', '거래량':'volume'})
+            df = df.rename(columns={'날짜':'date', '종가':'close', '전일비':'diff', '시가':'open', '고가':'high', '저가':'low', '거래량':'volume'})
             df['date'] = df['date'].replace('.','-')
             df = df.dropna()
             df[['close','diff','open','high','low','volume']] = df[['close','diff','open','high','low','volume']].astype(int)
@@ -128,7 +133,7 @@ class DBUpdater:
             if df is None:
                 continue
 
-            self.replace_into_db(df, idx, code, self.codes[code])
+            self.replace_info_db(df, idx, code, self.codes[code])
 
     def execute_daily(self):
         """실행 즉시 및 메일 오후 다섯시에 daily_price 테이블 업데이트"""
