@@ -33,7 +33,7 @@ class MarketDB:
             print("start_date is initialized to '{}'".format(start_date))
         else:
             start_lst = re.split('\D+', start_date)
-            if(start_lst[0] == '):
+            if(start_lst[0] == ''):
                 start_lst = start_lst[1:]
             start_year = int(start_lst[0])
             start_month = int(start_lst[1])
@@ -55,7 +55,7 @@ class MarketDB:
             print("end_date is initialized to '{}'".format(end_date))
         else:
             end_lst = re.split('\D+', end_date)
-            if(end_lst[0] == '):
+            if(end_lst[0] == ''):
                 end_lst = end_lst[1:]
             end_year = int(end_lst[0])
             end_month = int(end_lst[1])
@@ -82,7 +82,8 @@ class MarketDB:
         else:
             print("ValueError: code({}) doesn't exist".format(code))
 
-        sql = f"SELECT * from daily_price WHERE code = ''{code}' and date >= '{start_date}' and date <= '{end_date}'"
+        sql = f"SELECT * from daily_price WHERE code = '{code}' and date >= '{start_date}' and date <= '{end_date}'"
+        print(sql)
         df = pd.read_sql(sql, self.conn)
         df.index = df['date']
         return df
